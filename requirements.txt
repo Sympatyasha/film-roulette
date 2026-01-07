@@ -1,6 +1,6 @@
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
-psycopg2-binary==2.9.7
+psycopg2==2.9.6  # Используем обычный psycopg2 вместо binary
 gunicorn==20.1.0
 python-dotenv==1.0.0
 requests==2.31.0
