@@ -11,15 +11,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const resetFilters = document.getElementById('resetFilters');
     const resultSection = document.getElementById('resultSection');
     const historyList = document.getElementById('historyList');
+    const movieCount = document.getElementById('movieCount');
+    const avgRating = document.getElementById('avgRating');
+    const lastUpdate = document.getElementById('lastUpdate');
     
     // Состояние
     let selectedGenres = [];
     let genres = [];
     
     // Инициализация
-    loadGenres();
-    loadHistory();
-    updateRatingValue();
+    initApp();
+    
+    // Инициализация приложения
+    async function initApp() {
+        await loadGenres();
+        loadHistory();
+        loadStats();
+        updateRatingValue();
+        
+        // Загружаем историю при загрузке страницы
+        setTimeout(loadHistory, 1000);
+        
+        // Показываем уведомление при первом посещении
+        showWelcomeNotification();
+    }
     
     // Обработчики событий
     filtersToggle.addEventListener('click', function() {
@@ -39,6 +54,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     spinButton.addEventListener('click', spinRoulette);
     
+    // Добавляем кнопку обновления в DOM
+    const refreshBtn = document.createElement('div');
+    refreshBtn.className = 'refresh-btn';
+    refreshBtn.innerHTML = `
+        <i class="fas fa-sync-alt"></i>
+        <div class="tooltip">Обновить фильмы</div>
+    `;
+    refreshBtn.addEventListener('click', refreshMovies);
+    document.body.appendChild(refreshBtn);
+    
     // Функции
     function updateRatingValue() {
         const value = parseFloat(ratingSlider.value).toFixed(1);
@@ -52,6 +77,14 @@ document.addEventListener('DOMContentLoaded', function() {
             renderGenreChips();
         } catch (error) {
             console.error('Ошибка загрузки жанров:', error);
+            // Используем жанры по умолчанию
+            genres = [
+                'драма', 'комедия', 'боевик', 'триллер', 'ужасы',
+                'фантастика', 'фэнтези', 'мелодрама', 'детектив', 'приключения',
+                'криминал', 'биография', 'история', 'мультфильм', 'семейный',
+                'вестерн', 'военный', 'мюзикл', 'спорт', 'документальный'
+            ];
+            renderGenreChips();
         }
     }
     
@@ -61,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const chip = document.createElement('span');
             chip.className = 'genre-chip';
             chip.textContent = genre;
-            chip.dataset.genre = genre;
+            chip.dataset.genre = genre.toLowerCase();
             
             chip.addEventListener('click', function() {
                 const genre = this.dataset.genre;
@@ -135,6 +168,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-exclamation-triangle"></i>
                     <h3>Фильмы не найдены</h3>
                     <p>Попробуйте изменить критерии поиска</p>
+                    <p style="margin-top: 15px; font-size: 14px;">
+                        <a href="#" onclick="refreshMovies(); return false;">Обновить базу фильмов</a>
+                    </p>
                 </div>
             `;
         } finally {
@@ -172,16 +208,26 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Рейтинг
         const ratingEl = clone.querySelector('.movie-rating');
-        ratingEl.textContent = movie.rating_kp ? movie.rating_kp.toFixed(1) : '?';
+        const rating = movie.rating_kp || 0;
+        ratingEl.textContent = rating.toFixed(1);
         
-        if (movie.rating_kp >= 7) ratingEl.classList.add('rating-high');
-        else if (movie.rating_kp >= 5) ratingEl.classList.add('rating-medium');
+        if (rating >= 7) ratingEl.classList.add('rating-high');
+        else if (rating >= 5) ratingEl.classList.add('rating-medium');
         else ratingEl.classList.add('rating-low');
         
         // Основная информация
         clone.querySelector('.movie-title').textContent = movie.title_ru;
-        clone.querySelector('.movie-year').textContent = movie.year;
-        clone.querySelector('.movie-duration').textContent = movie.duration ? `${movie.duration} мин` : '';
+        clone.querySelector('.movie-year').textContent = movie.year || '?';
+        
+        if (movie.duration) {
+            const hours = Math.floor(movie.duration / 60);
+            const minutes = movie.duration % 60;
+            clone.querySelector('.movie-duration').textContent = 
+                hours > 0 ? `${hours}ч ${minutes}м` : `${minutes}м`;
+        } else {
+            clone.querySelector('.movie-duration').textContent = '';
+        }
+        
         clone.querySelector('.movie-country').textContent = movie.country || '';
         
         // Жанры
@@ -210,6 +256,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Рейтинги
         clone.querySelector('.rating-kp').textContent = movie.rating_kp ? movie.rating_kp.toFixed(1) : '—';
         clone.querySelector('.rating-imdb').textContent = movie.rating_imdb ? movie.rating_imdb.toFixed(1) : '—';
+        
+        // Добавляем ссылку на TMDb если есть ID
+        if (movie.tmdb_id) {
+            const infoDiv = clone.querySelector('.movie-info');
+            const tmdbLink = document.createElement('a');
+            tmdbLink.href = `https://www.themoviedb.org/movie/${movie.tmdb_id}`;
+            tmdbLink.target = '_blank';
+            tmdbLink.className = 'tmdb-link';
+            tmdbLink.innerHTML = '<i class="fab fa-imdb"></i> Подробнее на TMDb';
+            infoDiv.appendChild(tmdbLink);
+        }
         
         resultSection.innerHTML = '';
         resultSection.appendChild(clone);
@@ -247,9 +304,172 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // При клике на карточку истории показываем фильм
             const card = clone.querySelector('.history-card');
-            card.addEventListener('click', () => displayMovie(movie));
+            card.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/random', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ genres: [], year_from: null, year_to: null, rating_min: 0 })
+                    });
+                    
+                    if (response.ok) {
+                        const movie = await response.json();
+                        displayMovie(movie);
+                        loadHistory();
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки фильма:', error);
+                }
+            });
             
             historyList.appendChild(clone);
         });
     }
+    
+    async function loadStats() {
+        try {
+            const response = await fetch('/api/stats');
+            const stats = await response.json();
+            
+            movieCount.textContent = stats.total_movies;
+            avgRating.textContent = stats.avg_rating;
+            
+            // Обновляем дату
+            const now = new Date();
+            lastUpdate.textContent = `Обновление: ${now.toLocaleDateString('ru-RU')}`;
+            
+        } catch (error) {
+            console.error('Ошибка загрузки статистики:', error);
+            movieCount.textContent = '?';
+            avgRating.textContent = '?';
+        }
+    }
+    
+    async function refreshMovies() {
+        showLoading('Обновление базы фильмов...');
+        
+        try {
+            const response = await fetch('/api/refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                showNotification(`Добавлено ${result.message}! Всего фильмов: ${result.total}`);
+                loadStats();
+                loadGenres();
+            } else {
+                throw new Error('Ошибка обновления');
+            }
+        } catch (error) {
+            showNotification('Ошибка при обновлении фильмов', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    function showWelcomeNotification() {
+        if (!localStorage.getItem('welcome_shown')) {
+            setTimeout(() => {
+                showNotification('Добро пожаловать в КиноРулетку! 🎬');
+                localStorage.setItem('welcome_shown', 'true');
+            }, 1000);
+        }
+    }
+    
+    function showNotification(message, type = 'success') {
+        // Удаляем предыдущие уведомления
+        document.querySelectorAll('.notification').forEach(el => el.remove());
+        
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Показываем уведомление
+        setTimeout(() => notification.classList.add('show'), 100);
+        
+        // Скрываем через 5 секунд
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 500);
+        }, 5000);
+    }
+    
+    function showLoading(text = 'Загрузка...') {
+        let overlay = document.querySelector('.loading-overlay');
+        
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div class="loading-text">${text}</div>
+            `;
+            document.body.appendChild(overlay);
+        }
+        
+        setTimeout(() => overlay.classList.add('active'), 10);
+    }
+    
+    function hideLoading() {
+        const overlay = document.querySelector('.loading-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => overlay.remove(), 300);
+        }
+    }
+    
+    // Экспортируем функции для использования в HTML
+    window.refreshMovies = refreshMovies;
 });
+
+// Добавляем стили для уведомлений
+const style = document.createElement('style');
+style.textContent = `
+    .tmdb-link {
+        display: inline-block;
+        margin-top: 15px;
+        padding: 8px 16px;
+        background-color: #01b4e4;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: background-color 0.3s;
+    }
+    
+    .tmdb-link:hover {
+        background-color: #0099c3;
+    }
+    
+    .tmdb-link i {
+        margin-right: 5px;
+    }
+    
+    .notification .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .notification.success {
+        background-color: var(--kp-green);
+    }
+    
+    .notification.error {
+        background-color: #ff4757;
+    }
+`;
+document.head.appendChild(style);
