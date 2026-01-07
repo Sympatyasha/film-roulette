@@ -3,11 +3,17 @@ services:
     name: movie-roulette
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: movie-roulette-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
+      - key: TMDB_API_KEY
+        value: 88a2c09dbb5d2c9a7bf4e46a6f0e5a3f
       - key: PYTHON_VERSION
         value: 3.11.0
+    healthCheckPath: /health
+    autoDeploy: true
