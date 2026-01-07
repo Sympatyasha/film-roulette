@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КиноРулетка - Случайный фильм на вечер</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="logo">
+                <i class="fas fa-film"></i>
+                <h1>КиноРулетка</h1>
+            </div>
+            <p class="tagline">Случайный фильм на вечер в стиле КиноПоиска</p>
+        </header>
+
+        <main class="main-content">
+            <div class="roulette-section">
+                <button class="spin-button" id="spinButton">
+                    <div class="spin-button-inner">
+                        <span class="spin-text">КРУТИТЬ РУЛЕТКУ!</span>
+                        <div class="film-reel">
+                            <div class="film-hole"></div>
+                            <div class="film-hole"></div>
+                            <div class="film-hole"></div>
+                            <div class="film-hole"></div>
+                        </div>
+                    </div>
+                </button>
+
+                <div class="filters-toggle" id="filtersToggle">
+                    <i class="fas fa-filter"></i> Фильтры поиска
+                </div>
+
+                <div class="filters-panel" id="filtersPanel">
+                    <div class="filter-section">
+                        <div class="filter-label">Жанры</div>
+                        <div class="genre-chips" id="genreChips">
+                            <!-- Жанры будут загружены через JS -->
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <div class="filter-label">Годы выпуска</div>
+                        <div class="year-filters">
+                            <input type="number" id="yearFrom" class="year-input" placeholder="от" min="1900" max="2024">
+                            <input type="number" id="yearTo" class="year-input" placeholder="до" min="1900" max="2024">
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <div class="filter-label">Рейтинг КиноПоиск</div>
+                        <div class="rating-filter">
+                            <input type="range" id="ratingSlider" min="0" max="10" step="0.1" value="5.0">
+                            <span class="rating-value" id="ratingValue">5.0+</span>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary" id="resetFilters">Сбросить фильтры</button>
+                    </div>
+                </div>
+
+                <div class="result-section" id="resultSection">
+                    <!-- Здесь будет появляться карточка фильма -->
+                </div>
+
+                <div class="history-section">
+                    <h3><i class="fas fa-history"></i> Недавние фильмы</h3>
+                    <div class="history-list" id="historyList">
+                        <!-- История будет загружена через JS -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="main-footer">
+            <p>Сделано с <i class="fas fa-heart"></i> для киноманов</p>
+            <p class="disclaimer">Все данные о фильмах взяты из открытых источников. Проект не коммерческий.</p>
+        </footer>
+    </div>
+
+    <!-- Шаблон карточки фильма -->
+    <template id="movieCardTemplate">
+        <div class="movie-card">
+            <div class="movie-poster">
+                <img src="" alt="" class="poster-image">
+                <div class="movie-rating rating-high"></div>
+            </div>
+            <div class="movie-info">
+                <h2 class="movie-title"></h2>
+                <div class="movie-meta">
+                    <span class="movie-year"></span>
+                    <span class="movie-duration"></span>
+                    <span class="movie-country"></span>
+                </div>
+                <div class="movie-genres"></div>
+                <p class="movie-description"></p>
+                <div class="movie-director">
+                    <strong>Режиссер:</strong> <span class="director-name"></span>
+                </div>
+                <div class="movie-cast">
+                    <strong>В ролях:</strong> <span class="cast-list"></span>
+                </div>
+                <div class="movie-ratings">
+                    <div class="rating-item">
+                        <span class="rating-label">КиноПоиск:</span>
+                        <span class="rating-number rating-kp"></span>
+                    </div>
+                    <div class="rating-item">
+                        <span class="rating-label">IMDb:</span>
+                        <span class="rating-number rating-imdb"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Шаблон карточки истории -->
+    <template id="historyCardTemplate">
+        <div class="history-card">
+            <div class="history-poster">
+                <img src="" alt="" class="history-poster-image">
+                <div class="history-rating"></div>
+            </div>
+            <div class="history-title"></div>
+        </div>
+    </template>
+
+    <!-- Шаблон скелетона -->
+    <template id="skeletonTemplate">
+        <div class="movie-skeleton">
+            <div class="skeleton-poster"></div>
+            <div class="skeleton-info">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-meta"></div>
+                <div class="skeleton-text"></div>
+                <div class="skeleton-text"></div>
+                <div class="skeleton-text"></div>
+            </div>
+        </div>
+    </template>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
