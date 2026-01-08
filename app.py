@@ -11,37 +11,56 @@ import random
 # Определяем, в production ли мы (по наличию переменной окружения RENDER)
 IS_RENDER = 'RENDER' in os.environ
 
+import os
+import json
+import requests
+from flask import Flask, render_template, jsonify, request, session
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+import random
+
 # Конфигурация приложения
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 
-# Настраиваем подключение к базе данных
-database_url = os.environ.get('DATABASE_URL')
-
-if not database_url:
-    # Локальная разработка - используем SQLite для простоты
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///movies.db'
-    print("Используется SQLite для локальной разработки")
-else:
-    # На render.com - исправляем URL для совместимости с драйверами
-    if database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql+pg8000://', 1)
-    elif database_url.startswith('postgresql://'):
-        database_url = database_url.replace('postgresql://', 'postgresql+pg8000://', 1)
-    
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    print("Используется PostgreSQL с драйвером pg8000")
-
+# ВСЕГДА используем SQLite для простоты и надежности
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'movies.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_recycle': 300,
-    'pool_pre_ping': True,
-    'connect_args': {
-        'connect_timeout': 10
-    }
-}
 
 db = SQLAlchemy(app)
+
+# Конфигурация приложения
+#app = Flask(__name__)
+#app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
+
+# Настраиваем подключение к базе данных
+#database_url = os.environ.get('DATABASE_URL')
+
+#if not database_url:
+    # Локальная разработка - используем SQLite для простоты
+##    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///movies.db'
+#    print("Используется SQLite для локальной разработки")
+#else:
+    # На render.com - исправляем URL для совместимости с драйверами
+#    if database_url.startswith('postgres://'):
+#        database_url = database_url.replace('postgres://', 'postgresql+pg8000://', 1)
+#    elif database_url.startswith('postgresql://'):
+ #       database_url = database_url.replace('postgresql://', 'postgresql+pg8000://', 1)
+    
+ #   app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+ #   print("Используется PostgreSQL с драйвером pg8000")
+
+#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+#app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+#    'pool_recycle': 300,
+#    'pool_pre_ping': True,
+ #   'connect_args': {
+ #       'connect_timeout': 10
+ #   }
+#}
+
+#db = SQLAlchemy(app)
 
 # Модель Movie
 class Movie(db.Model):
